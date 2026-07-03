@@ -113,6 +113,7 @@
   .row{display:flex; gap:10px; align-items:center;}
   #spinBtn{font-size:12px; padding:16px 12px; width:100%;}
   .hint{font-size:12.5px; color:var(--muted); line-height:1.45;}
+  .hint a{color:var(--teal);}
   #winnerBanner{display:none; text-align:center; padding:16px; background:#3a2f18; border:3px solid var(--gold); box-shadow:4px 4px 0 rgba(0,0,0,.45); font-family:var(--fpx); font-size:10px; color:var(--gold);}
   #winnerBanner .wname{font-size:13px; font-weight:800; color:var(--gold); margin-top:10px; line-height:1.6; text-shadow:2px 2px 0 #b0326a;}
 
@@ -265,7 +266,14 @@
       <label>Ссылка на профиль, ник или SteamID64</label>
       <input type="text" id="steamInput" placeholder="https://steamcommunity.com/id/nickname">
     </div>
-    <div class="hint">Профиль и список игр должны быть <b>открытыми</b> (Steam → Настройки профиля → Приватность → «Доступ к игровой информации: открытый»).</div>
+    <div class="field">
+      <label>Steam API-ключ (бесплатный)</label>
+      <input type="text" id="steamKey" placeholder="например, A1B2C3D4E5F6...">
+    </div>
+    <div class="hint">
+      1. «Доступ к игровой информации» в профиле должен быть <b>открытым</b>.<br>
+      2. Ключ выдаётся мгновенно на <a href="https://steamcommunity.com/dev/apikey" target="_blank">steamcommunity.com/dev/apikey</a> — в поле «домен» напиши что угодно (например, localhost). Ключ сохранится в этом браузере, никому его не показывай.
+    </div>
     <div class="status-msg" id="steamStatus"></div>
     <div class="actions">
       <button class="btn" onclick="closeModals()">Закрыть</button>
@@ -502,48 +510,51 @@ async function fetchViaProxy(url){
   }
   throw lastErr || new Error('fetch failed');
 }
-function steamPath(input){
+function parseSteamInput(input){
   input = input.trim().replace(/\/+$/,'');
   const m = input.match(/steamcommunity\.com\/(id|profiles)\/([^\/\?#]+)/i);
-  if (m) return m[1] + '/' + m[2];
-  if (/^\d{17}$/.test(input)) return 'profiles/' + input;
-  return 'id/' + input;
+  if (m) return {kind: m[1].toLowerCase()==='profiles' ? 'id64' : 'vanity', value: m[2]};
+  if (/^\d{17}$/.test(input)) return {kind:'id64', value:input};
+  return {kind:'vanity', value:input};
+}
+function parseJsonOrThrow(t){
+  try { return JSON.parse(t); }
+  catch(e){ throw new Error('Steam отклонил запрос — проверь API-ключ.'); }
 }
 async function importSteam(){
   const st = document.getElementById('steamStatus');
   const btn = document.getElementById('steamGo');
   const input = document.getElementById('steamInput').value.trim();
+  const key = document.getElementById('steamKey').value.trim();
   if (!input) return;
+  if (!key){
+    st.className='status-msg err';
+    st.textContent='Нужен API-ключ — получи его по ссылке ниже, это бесплатно и займёт минуту.';
+    return;
+  }
+  try{ localStorage.setItem('gameWheel_steamKey', key); }catch(e){}
   btn.disabled = true;
   st.className='status-msg'; st.textContent='Загружаю… (может занять до 20 секунд)';
   try {
-    const path = steamPath(input);
-    let names = [];
-    /* 1) старый XML-эндпоинт */
-    try {
-      const xml = await fetchViaProxy(`https://steamcommunity.com/${path}/games?tab=all&xml=1`);
-      const doc = new DOMParser().parseFromString(xml,'text/xml');
-      names = [...doc.querySelectorAll('game > name')].map(n=>n.textContent.trim());
-      if (!names.length && /profile is private|private/i.test(xml)) throw new Error('private');
-    } catch(e){ /* try next */ }
-    /* 2) JSON в HTML страницы игр */
-    if (!names.length){
-      const html = await fetchViaProxy(`https://steamcommunity.com/${path}/games/?tab=all`);
-      const m = html.match(/data-profile-gameslist="([^"]+)"/);
-      if (m){
-        const jsonStr = m[1].replace(/&quot;/g,'"').replace(/&amp;/g,'&').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>');
-        const data = JSON.parse(jsonStr);
-        names = (data.rgGames||[]).map(g=>g.name).filter(Boolean);
-      }
-      if (!names.length && /This profile is private/i.test(html)) throw new Error('Профиль приватный');
+    const p = parseSteamInput(input);
+    let sid = p.value;
+    if (p.kind==='vanity'){
+      const r = parseJsonOrThrow(await fetchViaProxy(
+        `https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/?key=${key}&vanityurl=${encodeURIComponent(p.value)}`));
+      if (!r.response || r.response.success!==1) throw new Error('Профиль по нику не найден — вставь полную ссылку или SteamID64.');
+      sid = r.response.steamid;
     }
-    if (!names.length) throw new Error('Не удалось получить список. Проверь, что профиль открытый, или используй «Импорт списком».');
+    const data = parseJsonOrThrow(await fetchViaProxy(
+      `https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key=${key}&steamid=${sid}&include_appinfo=1&include_played_free_games=1&format=json`));
+    const list = (data.response && data.response.games) || [];
+    if (!list.length) throw new Error('Steam вернул пустой список. Проверь «Доступ к игровой информации: открытый» (настройка применяется не мгновенно, подожди пару минут).');
+    const names = list.map(g=>g.name).filter(Boolean);
     const added = addGames(names.map(n=>({name:n, platform:'Steam'})));
     st.className='status-msg ok';
     st.textContent = `Найдено игр: ${names.length}. Добавлено новых: ${added} (дубликаты пропущены). Жанр и тип можно проставить в таблице.`;
   } catch(e){
     st.className='status-msg err';
-    st.textContent = 'Ошибка: ' + e.message + ' — если не получается, скопируй список игр вручную через «Импорт списком».';
+    st.textContent = 'Ошибка: ' + e.message + ' Если не получается — скопируй список вручную через «Импорт списком».';
   }
   btn.disabled = false;
 }
@@ -725,6 +736,7 @@ function esc(s){ return (s??'').toString().replace(/&/g,'&amp;').replace(/</g,'&
 
 renderProfiles();
 renderAll();
+try{ document.getElementById('steamKey').value = localStorage.getItem('gameWheel_steamKey')||''; }catch(e){}
 </script>
 </body>
 </html>
