@@ -83,6 +83,30 @@
   td .del:hover{color:var(--red);}
   .name-cell{font-weight:500;}
   .date-cell{color:var(--muted); white-space:nowrap; font-size:13px;}
+
+  /* кислотно-розовый сброс */
+  .btn.reset{background:#ff2ba6; color:#fff; border-color:var(--border); text-shadow:1px 1px 0 rgba(0,0,0,.45); box-shadow:2px 2px 0 var(--border);}
+  .btn.reset:hover{background:#ff5cc0;}
+
+  /* окно Windows 98/2000 */
+  .win98{background:#c3c7cb; border:2px solid; border-color:#ffffff #404040 #404040 #ffffff; box-shadow:1px 1px 0 #000, 6px 6px 0 rgba(0,0,0,.45); padding:3px;}
+  .win98-title{display:flex; justify-content:space-between; align-items:center; background:linear-gradient(90deg,#000080,#1084d0); color:#fff; padding:4px 7px; font-weight:700; font-size:12px; font-family:Tahoma,"MS Sans Serif","Segoe UI",sans-serif;}
+  .win98-btns{display:flex; gap:3px;}
+  .win98-btns b{width:18px; height:16px; background:#c3c7cb; color:#000; border:1px solid; border-color:#fff #404040 #404040 #fff; font-size:10px; line-height:14px; text-align:center; font-family:Tahoma,sans-serif; font-weight:700; cursor:default;}
+  .win98-body{background:#fff; border:2px solid; border-color:#404040 #ffffff #ffffff #404040; margin-top:3px; padding:0 4px; max-height:65vh; overflow:auto;}
+  .win98-body table{color:#111; font-family:Tahoma,Verdana,"Segoe UI",sans-serif; font-size:13px;}
+  .win98-body th{position:sticky; top:0; z-index:1; background:#c3c7cb; color:#000; border:1px solid; border-color:#fff #404040 #404040 #fff; border-bottom-width:2px; font-family:Tahoma,sans-serif; font-size:11px; font-weight:700; text-transform:none; letter-spacing:0; padding:4px 8px;}
+  .win98-body th:active{border-color:#404040 #fff #fff #404040;}
+  .win98-body td{border-bottom:1px solid #e6e6e6; color:#111; padding:4px 8px;}
+  .win98-body tr:hover td{background:#000080; color:#fff;}
+  .win98-body td select{background:#fff; color:#111; border:1px solid #7a7a7a; box-shadow:none; font-family:Tahoma,sans-serif; font-size:12px; padding:2px 4px;}
+  .win98-body td .del{color:#999; font-family:Tahoma,sans-serif;}
+  .win98-body td .del:hover{color:#c00;}
+  .win98-body tr:hover td .del{color:#ffb3b3;}
+  .win98-body::-webkit-scrollbar{width:16px; height:16px;}
+  .win98-body::-webkit-scrollbar-track{background:repeating-conic-gradient(#ffffff 0 25%, #c3c7cb 0 50%) 0 0/2px 2px;}
+  .win98-body::-webkit-scrollbar-thumb{background:#c3c7cb; border:1px solid; border-color:#fff #404040 #404040 #fff;}
+  .win98-body::-webkit-scrollbar-button{background:#c3c7cb; border:1px solid; border-color:#fff #404040 #404040 #fff; height:16px; width:16px;}
   .sticky-actions{position:sticky; bottom:0; background:linear-gradient(transparent, var(--bg) 30%); padding:16px 0 4px; display:flex; gap:12px; align-items:center;}
 
   /* wheel */
@@ -141,15 +165,15 @@
   <div class="lib-layout">
     <div class="filters-side">
       <div class="card">
-        <h3>Площадка <button class="btn" style="float:right;padding:2px 8px;font-size:11px" onclick="clearFilter('platform')">сброс</button></h3>
+        <h3>Площадка <button class="btn reset" style="float:right;padding:2px 8px;font-size:11px" onclick="clearFilter('platform')">сброс</button></h3>
         <div class="chips" id="platformChips"></div>
       </div>
       <div class="card">
-        <h3>Тип <button class="btn" style="float:right;padding:2px 8px;font-size:11px" onclick="clearFilter('type')">сброс</button></h3>
+        <h3>Тип <button class="btn reset" style="float:right;padding:2px 8px;font-size:11px" onclick="clearFilter('type')">сброс</button></h3>
         <div class="chips" id="typeChips"></div>
       </div>
       <div class="card">
-        <h3>Жанр <button class="btn" style="float:right;padding:2px 8px;font-size:11px" onclick="clearFilter('genre')">сброс</button></h3>
+        <h3>Жанр <button class="btn reset" style="float:right;padding:2px 8px;font-size:11px" onclick="clearFilter('genre')">сброс</button></h3>
         <div class="chips" id="genreChips"></div>
       </div>
       <div class="card">
@@ -162,7 +186,12 @@
         <input type="text" id="searchBox" placeholder="Поиск по названию…">
         <span class="count-label" id="countLabel"></span>
       </div>
-      <div class="card" style="padding:4px 10px;">
+      <div class="win98">
+        <div class="win98-title">
+          <span>🖥 C:\Библиотека\игры.exe</span>
+          <span class="win98-btns"><b>_</b><b>□</b><b>✕</b></span>
+        </div>
+        <div class="win98-body">
         <table>
           <thead><tr>
             <th data-sort="name">Игра ↕</th>
@@ -173,6 +202,7 @@
           </tr></thead>
           <tbody id="gamesBody"></tbody>
         </table>
+        </div>
       </div>
       <div class="sticky-actions">
         <button class="btn primary" id="toWheelBtn" onclick="loadWheel()">🎡 Загрузить в колесо</button>
