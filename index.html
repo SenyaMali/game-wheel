@@ -117,6 +117,15 @@
   #winnerBanner{display:none; text-align:center; padding:16px; background:#3a2f18; border:3px solid var(--gold); box-shadow:4px 4px 0 rgba(0,0,0,.45); font-family:var(--fpx); font-size:10px; color:var(--gold);}
   #winnerBanner .wname{font-size:13px; font-weight:800; color:var(--gold); margin-top:10px; line-height:1.6; text-shadow:2px 2px 0 #b0326a;}
 
+  /* match */
+  .match-layout{display:grid; grid-template-columns:340px 1fr; gap:18px; align-items:start;}
+  @media (max-width:1100px){ .match-layout{grid-template-columns:1fr;} }
+  .m-row{display:flex; justify-content:space-between; align-items:center; gap:8px; padding:7px 11px; background:var(--panel2); border:2px solid var(--border); font-size:13.5px;}
+  .m-row label{display:flex; gap:8px; align-items:center; cursor:pointer;}
+  .m-row input[type=checkbox]{width:auto;}
+  .m-buy-label{font-size:12px; color:var(--accent);}
+  .tag-full{color:var(--green);} .tag-buy{color:var(--amber);}
+
   /* modal */
   .modal-bg{display:none; position:fixed; inset:0; background:rgba(10,6,24,.78); z-index:10; align-items:center; justify-content:center;}
   .modal-bg.open{display:flex;}
@@ -139,6 +148,7 @@
   <div class="tabs">
     <button class="tab active" data-page="lib">Библиотека</button>
     <button class="tab" data-page="wheel">Колесо</button>
+    <button class="tab" data-page="match">Кооп-мэтч</button>
   </div>
   <div class="row" style="gap:6px;">
     <select id="profileSel" onchange="switchProfile(this.value)" style="width:auto; padding:7px 8px;" title="Чей список"></select>
@@ -150,6 +160,7 @@
   <button class="btn" onclick="openModal('addModal')">+ Игра</button>
   <button class="btn" onclick="openModal('steamModal')">Импорт из Steam</button>
   <button class="btn" onclick="openModal('pasteModal')">Импорт списком</button>
+  <button class="btn" onclick="openModal('shareModal')">Обмен списками</button>
   <button class="btn" onclick="exportCSV()">Экспорт CSV</button>
 </div>
 
@@ -241,6 +252,44 @@
   </div>
 </div>
 
+<!-- ================= MATCH ================= -->
+<div class="page" id="page-match">
+  <div class="match-layout">
+    <div>
+      <div class="card" style="margin-bottom:16px;">
+        <h3>Участники</h3>
+        <div id="matchList" style="display:flex; flex-direction:column; gap:6px;"></div>
+        <div class="hint" style="margin-top:12px;">
+          Отметь, чьи списки участвуют. Галочка «докупит» — человек готов купить игру, которой у него нет.
+          Списки друзей добавляются через «Обмен списками» в шапке.
+        </div>
+        <button class="btn primary" style="width:100%; margin-top:14px;" onclick="runMatch()">Найти мэтч</button>
+      </div>
+      <div class="card">
+        <h3>Правила мэтча</h3>
+        <div class="hint">
+          Берутся только кооп-игры (в «Типе» есть «кооп»).<br><br>
+          Игра проходит, если она есть <b>больше чем у половины</b> участников,
+          а все, у кого её нет, готовы докупить.
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="toolbar">
+        <span class="count-label" id="matchSummary">Выбери участников и нажми «Найти мэтч».</span>
+        <span class="spacer" style="flex:1;"></span>
+        <button class="btn primary" id="matchToWheelBtn" onclick="matchToWheel()" disabled>🎡 В колесо</button>
+      </div>
+      <div class="card" style="padding:4px 10px;">
+        <table>
+          <thead><tr><th>Игра</th><th>Жанр</th><th>Есть у</th><th>Докупают</th></tr></thead>
+          <tbody id="matchBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ================= MODALS ================= -->
 <div class="modal-bg" id="addModal">
   <div class="modal">
@@ -278,6 +327,23 @@
     <div class="actions">
       <button class="btn" onclick="closeModals()">Закрыть</button>
       <button class="btn primary" id="steamGo" onclick="importSteam()">Загрузить</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="shareModal">
+  <div class="modal">
+    <h2>Обмен списками</h2>
+    <div class="hint" style="margin-bottom:10px;">
+      <b>Отправить:</b> нажми «Код моего списка» и перешли код другу (Discord, Telegram…).<br>
+      <b>Получить:</b> вставь код друга в поле и нажми «Импортировать» — его список появится в переключателе и в кооп-мэтче.
+    </div>
+    <div class="field"><textarea id="shareArea" placeholder="Сюда вставь код друга — или тут появится твой код"></textarea></div>
+    <div class="status-msg" id="shareStatus"></div>
+    <div class="actions">
+      <button class="btn" onclick="closeModals()">Закрыть</button>
+      <button class="btn" onclick="makeShareCode()">Код моего списка</button>
+      <button class="btn primary" onclick="importShareCode()">Импортировать</button>
     </div>
   </div>
 </div>
@@ -559,6 +625,94 @@ async function importSteam(){
   btn.disabled = false;
 }
 
+/* ================= SHARE (обмен списками) ================= */
+function makeShareCode(){
+  const code = 'GW1|' + btoa(unescape(encodeURIComponent(JSON.stringify({name:store.current, games}))));
+  const ta = document.getElementById('shareArea');
+  ta.value = code; ta.select();
+  try{ navigator.clipboard.writeText(code); }catch(e){ document.execCommand && document.execCommand('copy'); }
+  const st = document.getElementById('shareStatus');
+  st.className='status-msg ok';
+  st.textContent = `Код списка «${store.current}» скопирован — отправь его друзьям.`;
+}
+function importShareCode(){
+  const st = document.getElementById('shareStatus');
+  const code = document.getElementById('shareArea').value.trim();
+  try {
+    if (!code.startsWith('GW1|')) throw new Error();
+    const data = JSON.parse(decodeURIComponent(escape(atob(code.slice(4)))));
+    let def = data.name || 'Друг';
+    while (store.profiles[def]) def += ' (2)';
+    const name = (prompt('Название для этого списка (чей он):', def)||'').trim();
+    if (!name) return;
+    if (store.profiles[name]){ st.className='status-msg err'; st.textContent='Список с таким именем уже есть.'; return; }
+    store.profiles[name] = (data.games||[])
+      .filter(g=>g && g.name)
+      .map((g,i)=>({id:i+1, name:String(g.name), platform:g.platform||'', type:g.type||'', genre:g.genre||''}));
+    save(); renderProfiles();
+    st.className='status-msg ok';
+    st.textContent = `Список «${name}» добавлен: ${store.profiles[name].length} игр. Он появился в переключателе и в кооп-мэтче.`;
+    document.getElementById('shareArea').value='';
+  } catch(e){
+    st.className='status-msg err';
+    st.textContent = 'Это не похоже на код списка. Код должен начинаться с «GW1|».';
+  }
+}
+
+/* ================= COOP MATCH ================= */
+let matchGames = [];
+const isCoop = g => /кооп|co-?op/i.test(g.type||'');
+function renderMatchPanel(){
+  const el = document.getElementById('matchList');
+  el.innerHTML = Object.keys(store.profiles).map(n=>`
+    <div class="m-row">
+      <label><input type="checkbox" class="m-in" data-name="${esc(n)}" checked>
+        ${esc(n)} <span style="color:var(--muted)">(${store.profiles[n].length})</span></label>
+      <label class="m-buy-label"><input type="checkbox" class="m-buy" data-name="${esc(n)}"> докупит</label>
+    </div>`).join('');
+}
+function runMatch(){
+  const parts = [...document.querySelectorAll('.m-in:checked')].map(c=>c.dataset.name);
+  if (parts.length < 2){ alert('Выбери минимум два списка.'); return; }
+  const buyers = new Set([...document.querySelectorAll('.m-buy:checked')].map(c=>c.dataset.name).filter(n=>parts.includes(n)));
+  const map = new Map();
+  parts.forEach(p=>{
+    (store.profiles[p]||[]).forEach(g=>{
+      if (!isCoop(g)) return;
+      const k = g.name.toLowerCase().trim();
+      if (!map.has(k)) map.set(k, {name:g.name, genre:g.genre||'', owners:[]});
+      map.get(k).owners.push(p);
+    });
+  });
+  let rejected = 0;
+  matchGames = [];
+  map.forEach(m=>{
+    const missing = parts.filter(p=>!m.owners.includes(p));
+    const majority = m.owners.length > parts.length/2;
+    const buyersOk = missing.every(p=>buyers.has(p));
+    if (majority && buyersOk) matchGames.push({...m, missing, full:missing.length===0});
+    else rejected++;
+  });
+  matchGames.sort((a,b)=> a.full===b.full ? a.name.localeCompare(b.name,'ru') : (a.full?-1:1));
+  const full = matchGames.filter(m=>m.full).length;
+  document.getElementById('matchBody').innerHTML = matchGames.map(m=>`
+    <tr>
+      <td class="name-cell">${m.full?'<span class="tag-full">✔</span> ':''}${esc(m.name)}</td>
+      <td>${esc(m.genre)}</td>
+      <td>${m.owners.map(esc).join(', ')}</td>
+      <td class="tag-buy">${m.missing.length ? m.missing.map(esc).join(', ') : '—'}</td>
+    </tr>`).join('') || '<tr><td colspan="4" style="color:var(--muted)">Совпадений нет 😢 Проверь, что у игр проставлен тип с «кооп».</td></tr>';
+  document.getElementById('matchSummary').textContent =
+    `Игр в мэтче: ${matchGames.length} (есть у всех: ${full}, с докупкой: ${matchGames.length-full}, отброшено: ${rejected})`;
+  document.getElementById('matchToWheelBtn').disabled = matchGames.length < 2;
+}
+function matchToWheel(){
+  if (matchGames.length < 2) return;
+  wheel = { items:matchGames.map(m=>m.name), out:[], rot:Math.random()*360, spinning:false, winner:null };
+  document.querySelector('.tab[data-page=wheel]').click();
+  renderWheelSide();
+}
+
 /* ================= MODALS / TABS ================= */
 function openModal(id){ document.getElementById(id).classList.add('open'); }
 function closeModals(){ document.querySelectorAll('.modal-bg').forEach(m=>m.classList.remove('open')); }
@@ -569,6 +723,7 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   t.classList.add('active');
   document.getElementById('page-'+t.dataset.page).classList.add('active');
   if (t.dataset.page==='wheel') drawWheel();
+  if (t.dataset.page==='match') renderMatchPanel();
 });
 document.getElementById('searchBox').addEventListener('input', e=>{ filter.search=e.target.value.toLowerCase(); renderTable(); });
 document.querySelectorAll('th[data-sort]').forEach(th=>th.onclick=()=>{
