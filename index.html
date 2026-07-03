@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Колесо игр</title>
+<style>
+  :root{
+    --bg:#0f1116; --panel:#181c25; --panel2:#1f2430; --border:#2a3040;
+    --text:#e8eaf0; --muted:#8b93a7; --accent:#4f8cff; --accent2:#7c5cff;
+    --green:#3ecf8e; --red:#ff5c6c; --gold:#ffce4f;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--text); font-family:"Segoe UI",system-ui,-apple-system,sans-serif; min-height:100vh;}
+  button{font-family:inherit;}
+  .top{display:flex; align-items:center; gap:16px; padding:14px 22px; border-bottom:1px solid var(--border); flex-wrap:wrap;}
+  .top h1{font-size:22px;}
+  .tabs{display:flex; gap:8px;}
+  .tab{padding:8px 18px; border-radius:10px; background:var(--panel); border:1px solid var(--border); color:var(--muted); cursor:pointer; font-size:15px;}
+  .tab.active{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .top .spacer{flex:1;}
+  .btn{padding:8px 14px; border-radius:9px; border:1px solid var(--border); background:var(--panel2); color:var(--text); cursor:pointer; font-size:14px;}
+  .btn:hover{border-color:var(--accent);}
+  .btn.primary{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600;}
+  .btn.primary:disabled{opacity:.45; cursor:default;}
+  .btn.danger{color:var(--red);}
+  .page{display:none; padding:18px 22px;}
+  .page.active{display:block;}
+
+  /* library */
+  .lib-layout{display:grid; grid-template-columns:270px 1fr; gap:18px; align-items:start;}
+  .card{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:14px;}
+  .card h3{font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin-bottom:10px;}
+  .chips{display:flex; flex-wrap:wrap; gap:6px;}
+  .chip{padding:5px 11px; border-radius:999px; border:1px solid var(--border); background:var(--panel2); color:var(--text); cursor:pointer; font-size:13px;}
+  .chip.on{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .chip .cnt{opacity:.65; font-size:11px; margin-left:4px;}
+  .filters-side > .card{margin-bottom:14px;}
+  input[type=text], input[type=number], select, textarea{
+    background:var(--panel2); border:1px solid var(--border); border-radius:8px;
+    color:var(--text); padding:8px 10px; font-size:14px; font-family:inherit; outline:none; width:100%;
+  }
+  input:focus, textarea:focus{border-color:var(--accent);}
+  .toolbar{display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap; align-items:center;}
+  .toolbar input[type=text]{max-width:280px;}
+  .count-label{color:var(--muted); font-size:14px;}
+  table{width:100%; border-collapse:collapse; font-size:14px;}
+  th{color:var(--muted); text-align:left; font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.05em; padding:8px 10px; border-bottom:1px solid var(--border); cursor:pointer; user-select:none; white-space:nowrap;}
+  td{padding:7px 10px; border-bottom:1px solid #222736;}
+  tr:hover td{background:#1c2130;}
+  td select{padding:4px 6px; font-size:13px; width:auto; max-width:170px;}
+  td .del{background:none; border:none; color:var(--muted); cursor:pointer; font-size:15px;}
+  td .del:hover{color:var(--red);}
+  .name-cell{font-weight:500;}
+  .date-cell{color:var(--muted); white-space:nowrap; font-size:13px;}
+  .sticky-actions{position:sticky; bottom:0; background:linear-gradient(transparent, var(--bg) 30%); padding:16px 0 4px; display:flex; gap:12px; align-items:center;}
+
+  /* wheel */
+  .wheel-layout{display:grid; grid-template-columns:300px 1fr 280px; gap:18px; align-items:start;}
+  #wheelList{max-height:70vh; overflow-y:auto; display:flex; flex-direction:column; gap:5px;}
+  .wl-item{display:flex; justify-content:space-between; gap:8px; padding:7px 11px; border-radius:8px; background:var(--panel2); font-size:13.5px; border-left:4px solid transparent;}
+  .wl-item.out{opacity:.38; text-decoration:line-through;}
+  .wl-item.winner{border-left-color:var(--gold); background:#2a2718; font-weight:700;}
+  .wheel-center{display:flex; flex-direction:column; align-items:center; gap:10px;}
+  #currentName{font-size:26px; font-weight:700; min-height:36px; text-align:center;}
+  .wheel-wrap{position:relative;}
+  #wheelCanvas{max-width:100%;}
+  .pointer{position:absolute; top:-6px; left:50%; transform:translateX(-50%); width:0; height:0;
+    border-left:14px solid transparent; border-right:14px solid transparent; border-top:26px solid var(--red);
+    filter:drop-shadow(0 2px 3px rgba(0,0,0,.6)); z-index:2;}
+  .wheel-controls{display:flex; flex-direction:column; gap:12px;}
+  .wheel-controls label{font-size:13px; color:var(--muted); display:block; margin-bottom:5px;}
+  .row{display:flex; gap:10px; align-items:center;}
+  #spinBtn{font-size:17px; padding:12px; width:100%;}
+  .hint{font-size:12.5px; color:var(--muted); line-height:1.45;}
+  #winnerBanner{display:none; text-align:center; padding:14px; border-radius:12px; background:linear-gradient(135deg,#3a2f10,#2a2718); border:1px solid var(--gold);}
+  #winnerBanner .wname{font-size:22px; font-weight:800; color:var(--gold); margin-top:4px;}
+
+  /* modal */
+  .modal-bg{display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:10; align-items:center; justify-content:center;}
+  .modal-bg.open{display:flex;}
+  .modal{background:var(--panel); border:1px solid var(--border); border-radius:16px; padding:22px; width:min(560px,92vw); max-height:88vh; overflow-y:auto;}
+  .modal h2{font-size:19px; margin-bottom:14px;}
+  .modal .field{margin-bottom:12px;}
+  .modal label{font-size:13px; color:var(--muted); display:block; margin-bottom:5px;}
+  .modal textarea{min-height:140px; resize:vertical;}
+  .modal .actions{display:flex; gap:10px; justify-content:flex-end; margin-top:16px;}
+  .status-msg{font-size:13.5px; margin-top:10px; color:var(--muted);}
+  .status-msg.err{color:var(--red);}
+  .status-msg.ok{color:var(--green);}
+  @media (max-width:1100px){ .wheel-layout{grid-template-columns:1fr;} .lib-layout{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>🎡 Колесо игр</h1>
+  <div class="tabs">
+    <button class="tab active" data-page="lib">Библиотека</button>
+    <button class="tab" data-page="wheel">Колесо</button>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn" onclick="openModal('addModal')">+ Игра</button>
+  <button class="btn" onclick="openModal('steamModal')">Импорт из Steam</button>
+  <button class="btn" onclick="openModal('pasteModal')">Импорт списком</button>
+  <button class="btn" onclick="exportCSV()">Экспорт CSV</button>
+</div>
+
+<!-- ================= LIBRARY ================= -->
+<div class="page active" id="page-lib">
+  <div class="lib-layout">
+    <div class="filters-side">
+      <div class="card">
+        <h3>Площадка <button class="btn" style="float:right;padding:2px 8px;font-size:11px" onclick="clearFilter('platform')">сброс</button></h3>
+        <div class="chips" id="platformChips"></div>
+      </div>
+      <div class="card">
+        <h3>Тип <button class="btn" style="float:right;padding:2px 8px;font-size:11px" onclick="clearFilter('type')">сброс</button></h3>
+        <div class="chips" id="typeChips"></div>
+      </div>
+      <div class="card">
+        <h3>Жанр <button class="btn" style="float:right;padding:2px 8px;font-size:11px" onclick="clearFilter('genre')">сброс</button></h3>
+        <div class="chips" id="genreChips"></div>
+      </div>
+      <div class="card">
+        <h3>Итого</h3>
+        <div id="statsBox" class="hint"></div>
+      </div>
+    </div>
+    <div>
+      <div class="toolbar">
+        <input type="text" id="searchBox" placeholder="Поиск по названию…">
+        <span class="count-label" id="countLabel"></span>
+      </div>
+      <div class="card" style="padding:4px 10px;">
+        <table>
+          <thead><tr>
+            <th data-sort="name">Игра ↕</th>
+            <th data-sort="platform">Площадка ↕</th>
+            <th data-sort="type">Тип ↕</th>
+            <th data-sort="genre">Жанр ↕</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="gamesBody"></tbody>
+        </table>
+      </div>
+      <div class="sticky-actions">
+        <button class="btn primary" id="toWheelBtn" onclick="loadWheel()">🎡 Загрузить в колесо</button>
+        <span class="count-label" id="toWheelLabel"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= WHEEL ================= -->
+<div class="page" id="page-wheel">
+  <div class="wheel-layout">
+    <div class="card">
+      <h3>Участники <span id="wheelCount"></span></h3>
+      <div id="wheelList"></div>
+    </div>
+    <div class="wheel-center">
+      <div id="currentName">&nbsp;</div>
+      <div class="wheel-wrap">
+        <div class="pointer"></div>
+        <canvas id="wheelCanvas" width="640" height="640"></canvas>
+      </div>
+    </div>
+    <div class="wheel-controls">
+      <div class="card">
+        <button class="btn primary" id="spinBtn" onclick="spin()">Крутить</button>
+        <div style="margin-top:12px;">
+          <label>Длительность вращения, сек</label>
+          <input type="number" id="spinDur" value="6" min="1" max="30">
+        </div>
+        <div class="row" style="margin-top:12px;">
+          <input type="checkbox" id="autoSpin" style="width:auto;">
+          <label for="autoSpin" style="margin:0; cursor:pointer;">Авто-выбывание до победителя</label>
+        </div>
+        <div class="hint" style="margin-top:12px;">
+          Режим выбывания: игра, на которую указала стрелка, выбывает.
+          Последняя оставшаяся — победитель. 🏆
+        </div>
+      </div>
+      <div id="winnerBanner">
+        🏆 Победитель
+        <div class="wname" id="winnerName"></div>
+        <button class="btn" style="margin-top:10px;" onclick="restartWheel()">Начать заново</button>
+      </div>
+      <div class="card">
+        <button class="btn" style="width:100%;" onclick="restartWheel()">↺ Сбросить выбывания</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODALS ================= -->
+<div class="modal-bg" id="addModal">
+  <div class="modal">
+    <h2>Добавить игру</h2>
+    <div class="field"><label>Название</label><input type="text" id="addName"></div>
+    <div class="field"><label>Площадка</label><input type="text" id="addPlatform" list="platformList" placeholder="Steam / Epic Games / …"></div>
+    <div class="field"><label>Тип</label><input type="text" id="addType" list="typeList" placeholder="Сингл / Кооп / Сингл/кооп"></div>
+    <div class="field"><label>Жанр</label><input type="text" id="addGenre" list="genreList"></div>
+    <datalist id="typeList"></datalist>
+    <datalist id="genreList"></datalist>
+    <datalist id="platformList"></datalist>
+    <div class="actions">
+      <button class="btn" onclick="closeModals()">Отмена</button>
+      <button class="btn primary" onclick="addGame()">Добавить</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="steamModal">
+  <div class="modal">
+    <h2>Импорт из Steam</h2>
+    <div class="field">
+      <label>Ссылка на профиль, ник или SteamID64</label>
+      <input type="text" id="steamInput" placeholder="https://steamcommunity.com/id/nickname">
+    </div>
+    <div class="hint">Профиль и список игр должны быть <b>открытыми</b> (Steam → Настройки профиля → Приватность → «Доступ к игровой информации: открытый»).</div>
+    <div class="status-msg" id="steamStatus"></div>
+    <div class="actions">
+      <button class="btn" onclick="closeModals()">Закрыть</button>
+      <button class="btn primary" id="steamGo" onclick="importSteam()">Загрузить</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="pasteModal">
+  <div class="modal">
+    <h2>Импорт списком</h2>
+    <div class="hint" style="margin-bottom:10px;">
+      Одна игра на строку. Можно просто названия, а можно с типом и жанром через <b>;</b> или <b>Tab</b>:<br>
+      <code>Hades; Сингл; Рогалик; Steam</code><br><br>
+      Для Epic Games: открой библиотеку на epicgames.com, выдели и скопируй названия игр, вставь сюда.
+    </div>
+    <div class="field"><textarea id="pasteArea" placeholder="Hades&#10;Stray; Сингл; Экшен/Приключения&#10;..."></textarea></div>
+    <div class="status-msg" id="pasteStatus"></div>
+    <div class="actions">
+      <button class="btn" onclick="closeModals()">Закрыть</button>
+      <button class="btn primary" onclick="importPaste()">Импортировать</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= DATA ================= */
+const SEED = [{"date": "1 июл. 2026 г.", "name": "Nightingale", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "1 июл. 2026 г.", "name": "Human Host", "type": "Сингл", "genre": "Ужасы"}, {"date": "1 июл. 2026 г.", "name": "Hotel Owner Simulator", "type": "Сингл", "genre": "Симулятор"}, {"date": "1 июл. 2026 г.", "name": "Survival: Fountain of Youth", "type": "Сингл", "genre": "Выживание"}, {"date": "1 июл. 2026 г.", "name": "Outlast", "type": "Сингл", "genre": "Ужасы"}, {"date": "1 июл. 2026 г.", "name": "Enshrouded", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "1 июл. 2026 г.", "name": "Scorn", "type": "Сингл", "genre": "Ужасы"}, {"date": "1 июл. 2026 г.", "name": "Outlast 2", "type": "Сингл", "genre": "Ужасы"}, {"date": "1 июл. 2026 г.", "name": "Villagers", "type": "Сингл", "genre": "Стратегия"}, {"date": "28 июн. 2026 г.", "name": "Lethal Company", "type": "Сингл/кооп", "genre": "Ужасы"}, {"date": "27 июн. 2026 г.", "name": "INSOMNIA: The Ark", "type": "Сингл", "genre": "Ужасы"}, {"date": "27 июн. 2026 г.", "name": "Night Club Simulator", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "27 июн. 2026 г.", "name": "Control", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "27 июн. 2026 г.", "name": "Creepy Tale", "type": "Сингл", "genre": "Детектив"}, {"date": "27 июн. 2026 г.", "name": "Remnant: From the Ashes", "type": "Сингл/кооп", "genre": "Ролевая игра"}, {"date": "27 июн. 2026 г.", "name": "Crysis Remastered", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "27 июн. 2026 г.", "name": "Hollow Knight: Silksong", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "27 июн. 2026 г.", "name": "Rain World", "type": "Сингл", "genre": "Выживание"}, {"date": "27 июн. 2026 г.", "name": "Plague Inc: Evolved", "type": "Сингл/кооп", "genre": "Стратегия"}, {"date": "27 июн. 2026 г.", "name": "Black Desert", "type": "Кооп", "genre": "Ролевая игра"}, {"date": "27 июн. 2026 г.", "name": "A Plague Tale: Innocence", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "27 июн. 2026 г.", "name": "Carrion", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "27 июн. 2026 г.", "name": "Bendy and the Dark Revival", "type": "Сингл", "genre": "Ужасы"}, {"date": "27 июн. 2026 г.", "name": "Blue Prince", "type": "Сингл", "genre": "Детектив"}, {"date": "27 июн. 2026 г.", "name": "Remnant II® - Standard Edition", "type": "Сингл/кооп", "genre": "Ролевая игра"}, {"date": "25 июн. 2026 г.", "name": "Drive Beyond Horizons", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "25 июн. 2026 г.", "name": "R.E.P.O.", "type": "Сингл/кооп", "genre": "Ужасы"}, {"date": "23 июн. 2026 г.", "name": "MECCHA CHAMELEON", "type": "Кооп", "genre": "Экшен/Приключения"}, {"date": "20 июн. 2026 г.", "name": "Zenless Zone Zero", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "5 июн. 2026 г.", "name": "Fantasy Map Simulator", "type": "Сингл", "genre": "Симулятор"}, {"date": "2 июн. 2026 г.", "name": "Planetary Life", "type": "Сингл", "genre": "Симулятор"}, {"date": "2 июн. 2026 г.", "name": "Everything is Crab", "type": "Сингл", "genre": "Рогалик"}, {"date": "18 мая. 2026 г.", "name": "Subnautica: Below Zero", "type": "Сингл", "genre": "Выживание"}, {"date": "15 мая. 2026 г.", "name": "We Were Here Forever", "type": "Кооп", "genre": "Головоломка"}, {"date": "30 апр. 2026 г.", "name": "Tiny Bookshop", "type": "Сингл", "genre": "Симулятор"}, {"date": "2 апр. 2026 г.", "name": "God of War", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "31 янв. 2026 г.", "name": "No Time to Relax", "type": "Сингл", "genre": "Казуальная"}, {"date": "31 янв. 2026 г.", "name": "Carcassonne: The Official Board Game", "type": "Сингл", "genre": "Настольная"}, {"date": "31 янв. 2026 г.", "name": "Dorfromantik", "type": "Сингл", "genre": "Головоломка"}, {"date": "14 янв. 2026 г.", "name": "Magic Forge Tycoon", "type": "Сингл", "genre": "Симулятор"}, {"date": "31 окт. 2025 г.", "name": "RV There Yet?", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "1 окт. 2025 г.", "name": "Megabonk", "type": "Сингл", "genre": "Рогалик"}, {"date": "1 окт. 2025 г.", "name": "Town To City", "type": "Сингл", "genre": "Стратегия"}, {"date": "21 сен. 2025 г.", "name": "Voyagers of Nera", "type": "Сингл/кооп", "genre": "Ролевая игра"}, {"date": "21 сен. 2025 г.", "name": "Neva", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "21 сен. 2025 г.", "name": "Aloft", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "21 сен. 2025 г.", "name": "GRIS", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "16 сен. 2025 г.", "name": "No, I'm not a Human", "type": "Сингл", "genre": "Детектив"}, {"date": "13 сен. 2025 г.", "name": "Beholder", "type": "Сингл", "genre": "Детектив"}, {"date": "13 сен. 2025 г.", "name": "Beholder 2", "type": "Сингл", "genre": "Детектив"}, {"date": "5 сен. 2025 г.", "name": "Clair Obscur: Expedition 33", "type": "Сингл", "genre": "Ролевая игра"}, {"date": "5 сен. 2025 г.", "name": "PEAK", "type": "Сингл/кооп", "genre": "Экшен/Приключения"}, {"date": "5 сен. 2025 г.", "name": "Sengoku Dynasty", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "5 сен. 2025 г.", "name": "Hollow Knight", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "29 авг. 2025 г.", "name": "Once Human", "type": "Кооп", "genre": "Выживание"}, {"date": "20 авг. 2025 г.", "name": "Dinkum", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "31 июл. 2025 г.", "name": "Arctic Motel Simulator", "type": "Сингл", "genre": "Симулятор"}, {"date": "31 июл. 2025 г.", "name": "Farming & Supermarket Simulator", "type": "Сингл", "genre": "Симулятор"}, {"date": "11 июл. 2025 г.", "name": "Voidtrain", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "30 июн. 2025 г.", "name": "The Lord of the Rings: Return to Moria™", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "29 мар. 2025 г.", "name": "inZOI", "type": "Сингл", "genre": "Симулятор"}, {"date": "16 мар. 2025 г.", "name": "Spiritfarer: Farewell", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "16 мар. 2025 г.", "name": "Valheim", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "16 мар. 2025 г.", "name": "DEATH STRANDING DIRECTOR'S CUT", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "16 мар. 2025 г.", "name": "Stray", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "16 мар. 2025 г.", "name": "Old Market Simulator", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "16 мар. 2025 г.", "name": "Terra Nil", "type": "Сингл", "genre": "Головоломка"}, {"date": "16 мар. 2025 г.", "name": "Manor Lords", "type": "Сингл", "genre": "Стратегия"}, {"date": "16 мар. 2025 г.", "name": "Palworld", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "16 мар. 2025 г.", "name": "Potion Craft", "type": "Сингл", "genre": "Симулятор"}, {"date": "16 мар. 2025 г.", "name": "Travellers Rest", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "16 мар. 2025 г.", "name": "Gas Station Simulator", "type": "Сингл", "genre": "Симулятор"}, {"date": "16 мар. 2025 г.", "name": "Crusader Kings III Launch", "type": "Сингл", "genre": "Стратегия"}, {"date": "16 мар. 2025 г.", "name": "Conan Exiles Enhanced", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "16 мар. 2025 г.", "name": "The Walking Dead: The Telltale Definitive Series", "type": "Сингл", "genre": "Интерактивное кино"}, {"date": "10 мар. 2025 г.", "name": "Farming Simulator 25", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "4 мар. 2025 г.", "name": "RimWorld", "type": "Сингл", "genre": "Стратегия"}, {"date": "4 мар. 2025 г.", "name": "REKA", "type": "Сингл", "genre": "Ужасы"}, {"date": "4 мар. 2025 г.", "name": "Old World", "type": "Сингл/кооп", "genre": "Стратегия"}, {"date": "1 мар. 2025 г.", "name": "Animal Trainer Simulator", "type": "Сингл", "genre": "Симулятор"}, {"date": "1 мар. 2025 г.", "name": "Rustler", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "28 фев. 2025 г.", "name": "My Horse: Bonded Spirits", "type": "Сингл", "genre": "Симулятор"}, {"date": "23 фев. 2025 г.", "name": "Ranch Simulator", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "18 фев. 2025 г.", "name": "Orcs Must Die! Deathtrap", "type": "Сингл/кооп", "genre": "Защита башни"}, {"date": "18 фев. 2025 г.", "name": "Orcs Must Die!", "type": "Сингл", "genre": "Защита башни"}, {"date": "18 фев. 2025 г.", "name": "КЛЕТЬ", "type": "Сингл/кооп", "genre": "Ужасы"}, {"date": "18 фев. 2025 г.", "name": "Diplomacy is Not an Option", "type": "Сингл", "genre": "Стратегия"}, {"date": "14 фев. 2025 г.", "name": "Baldur's Gate 3", "type": "Сингл/кооп", "genre": "Ролевая игра"}, {"date": "3 фев. 2025 г.", "name": "The Elder Scrolls V: Skyrim", "type": "Сингл", "genre": "Ролевая игра"}, {"date": "3 фев. 2025 г.", "name": "Supermarket Together", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "2 фев. 2025 г.", "name": "The Headliners", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "27 янв. 2025 г.", "name": "Streamer Life Simulator 2", "type": "Сингл", "genre": "Симулятор"}, {"date": "27 янв. 2025 г.", "name": "Internet Cafe Simulator 2", "type": "Сингл", "genre": "Симулятор"}, {"date": "13 янв. 2025 г.", "name": "MiSide", "type": "Сингл", "genre": "Ужасы"}, {"date": "20 дек. 2024 г.", "name": "Tiny Glade", "type": "Сингл", "genre": "Казуальная"}, {"date": "20 дек. 2024 г.", "name": "Stellaris", "type": "Сингл/кооп", "genre": "Стратегия"}, {"date": "19 дек. 2024 г.", "name": "Dying Light", "type": "Сингл/кооп", "genre": "Ужасы"}, {"date": "19 дек. 2024 г.", "name": "Dying Light 2", "type": "Сингл/кооп", "genre": "Ужасы"}, {"date": "6 дек. 2024 г.", "name": "The Wild Eight", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "6 дек. 2024 г.", "name": "Frostpunk", "type": "Сингл", "genre": "Стратегия"}, {"date": "4 дек. 2024 г.", "name": "ASKA", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "4 дек. 2024 г.", "name": "Cities: Skylines", "type": "Сингл", "genre": "Стратегия"}, {"date": "4 дек. 2024 г.", "name": "Terraria", "type": "Сингл/кооп", "genre": "Песочница"}, {"date": "4 дек. 2024 г.", "name": "Darkest Dungeon", "type": "Сингл", "genre": "Ролевая игра"}, {"date": "4 дек. 2024 г.", "name": "Northgard: Definitive Edition", "type": "Сингл/кооп", "genre": "Стратегия"}, {"date": "30 ноя. 2024 г.", "name": "Totally Accurate Battle Simulator", "type": "Сингл", "genre": "Стратегия"}, {"date": "26 ноя. 2024 г.", "name": "Timeflow", "type": "Сингл", "genre": "Головоломка"}, {"date": "20 ноя. 2024 г.", "name": "Super Bunny Man", "type": "Кооп", "genre": "Платформер"}, {"date": "19 ноя. 2024 г.", "name": "Pummel Party", "type": "Кооп", "genre": "Казуальная"}, {"date": "18 ноя. 2024 г.", "name": "Nuclear Nightmare", "type": "Сингл/кооп", "genre": "Ужасы"}, {"date": "18 ноя. 2024 г.", "name": "Who's Your Daddy", "type": "Кооп", "genre": "Казуальная"}, {"date": "10 ноя. 2024 г.", "name": "Party Animals", "type": "Кооп", "genre": "Экшен/Приключения"}, {"date": "31 окт. 2024 г.", "name": "Dark Hours", "type": "Сингл/кооп", "genre": "Ужасы"}, {"date": "30 окт. 2024 г.", "name": "Brotato", "type": "Сингл", "genre": "Рогалик"}, {"date": "19 окт. 2024 г.", "name": "Liar's Bar", "type": "Кооп", "genre": "Детектив"}, {"date": "7 окт. 2024 г.", "name": "Only Up: With Friends", "type": "Кооп", "genre": "Платформер"}, {"date": "7 окт. 2024 г.", "name": "Scrap Mechanic", "type": "Сингл/кооп", "genre": "Песочница"}, {"date": "7 окт. 2024 г.", "name": "Fahrenheit", "type": "Сингл", "genre": "Интерактивное кино"}, {"date": "7 окт. 2024 г.", "name": "Detroit: Become Human", "type": "Сингл", "genre": "Интерактивное кино"}, {"date": "7 окт. 2024 г.", "name": "Beyond: Two Souls", "type": "Сингл", "genre": "Интерактивное кино"}, {"date": "7 окт. 2024 г.", "name": "Content Warning", "type": "Кооп", "genre": "Ужасы"}, {"date": "7 окт. 2024 г.", "name": "Heavy Rain", "type": "Сингл", "genre": "Интерактивное кино"}, {"date": "30 сен. 2024 г.", "name": "My Island", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "30 сен. 2024 г.", "name": "Soulmask", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "30 сен. 2024 г.", "name": "Ale & Tale Tavern", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "30 сен. 2024 г.", "name": "Witchtastic", "type": "Сингл/кооп", "genre": "Экшен/Приключения"}, {"date": "30 сен. 2024 г.", "name": "Cannibal Cuisine", "type": "Сингл/кооп", "genre": "Экшен/Приключения"}, {"date": "28 сен. 2024 г.", "name": "Lucky Tower Ultimate", "type": "Сингл", "genre": "Защита башни"}, {"date": "20 сен. 2024 г.", "name": "Project Zomboid", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "20 сен. 2024 г.", "name": "DEVOUR", "type": "Сингл/кооп", "genre": "Ужасы"}, {"date": "12 сен. 2024 г.", "name": "Chained Together", "type": "Кооп", "genre": "Платформер"}, {"date": "19 июл. 2024 г.", "name": "We Were Here Expeditions: The Friendship", "type": "Кооп", "genre": "Головоломка"}, {"date": "13 июн. 2024 г.", "name": "Dark and Darker", "type": "Кооп", "genre": "Экшен/Приключения"}, {"date": "7 июн. 2024 г.", "name": "Fallout Shelter", "type": "Сингл", "genre": "Стратегия"}, {"date": "21 мая. 2024 г.", "name": "Don't Starve Together", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "21 мая. 2024 г.", "name": "Eville", "type": "Кооп", "genre": "Детектив"}, {"date": "30 апр. 2024 г.", "name": "Supermarket Simulator", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "27 апр. 2024 г.", "name": "Deceit 2", "type": "Кооп", "genre": "Ужасы"}, {"date": "11 апр. 2024 г.", "name": "Buckshot Roulette", "type": "Сингл/кооп", "genre": "Ужасы"}, {"date": "5 апр. 2024 г.", "name": "Phasmophobia", "type": "Сингл/кооп", "genre": "Ужасы"}, {"date": "25 мар. 2024 г.", "name": "Palia", "type": "Сингл", "genre": "Симулятор"}, {"date": "13 мар. 2024 г.", "name": "Medieval Dynasty", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "30 янв. 2024 г.", "name": "Sons Of The Forest", "type": "Сингл/кооп", "genre": "Ужасы"}, {"date": "29 янв. 2024 г.", "name": "Deceit", "type": "Кооп", "genre": "Ужасы"}, {"date": "24 янв. 2024 г.", "name": "7 Days to Die", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "6 янв. 2024 г.", "name": "Pacify", "type": "Кооп", "genre": "Ужасы"}, {"date": "6 янв. 2024 г.", "name": "House Flipper", "type": "Сингл", "genre": "Симулятор"}, {"date": "27 ноя. 2023 г.", "name": "Tick Tock: A Tale for Two", "type": "Кооп", "genre": "Головоломка"}, {"date": "26 ноя. 2023 г.", "name": "Left 4 Dead 2", "type": "Сингл/кооп", "genre": "Экшен/Приключения"}, {"date": "25 ноя. 2023 г.", "name": "Subnautica", "type": "Сингл", "genre": "Выживание"}, {"date": "22 ноя. 2023 г.", "name": "We Were Here", "type": "Кооп", "genre": "Головоломка"}, {"date": "22 ноя. 2023 г.", "name": "We Were Here Too", "type": "Кооп", "genre": "Головоломка"}, {"date": "22 ноя. 2023 г.", "name": "We Were Here Together", "type": "Кооп", "genre": "Головоломка"}, {"date": "20 ноя. 2023 г.", "name": "Tavern Master", "type": "Сингл", "genre": "Симулятор"}, {"date": "1 ноя. 2023 г.", "name": "Stardew Valley", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "31 окт. 2023 г.", "name": "Goose Goose Duck", "type": "Кооп", "genre": "Детектив"}, {"date": "16 окт. 2023 г.", "name": "Summoners War: Chronicles", "type": "Сингл/кооп", "genre": "Ролевая игра"}, {"date": "4 янв. 2023 г.", "name": "Portal 2", "type": "Сингл/кооп", "genre": "Головоломка"}, {"date": "4 янв. 2023 г.", "name": "ARK: Survival Evolved", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "28 дек. 2021 г.", "name": "Sid Meier's Civilization VI", "type": "Сингл/кооп", "genre": "Стратегия"}, {"date": "12 ноя. 2021 г.", "name": "Raft", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "12 ноя. 2021 г.", "name": "Stranded Deep", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "2 ноя. 2021 г.", "name": "The Forest", "type": "Сингл/кооп", "genre": "Ужасы"}, {"date": "9 окт. 2021 г.", "name": "The Elder Scrolls Online: Standard Edition", "type": "Сингл/кооп", "genre": "Ролевая игра"}];
+const LS_KEY = 'gameWheel_library_v1';
+let games = [];
+try { games = JSON.parse(localStorage.getItem(LS_KEY) || 'null') || []; } catch(e){ games = []; }
+if (!games.length) { games = SEED.map((g,i)=>({id:i+1, name:g.name, type:g.type||'', genre:g.genre||''})); }
+/* миграция: убираем дату, добавляем площадку */
+games.forEach(g=>{ delete g.date; if (g.platform===undefined) g.platform=''; });
+save();
+let nextId = games.reduce((m,g)=>Math.max(m,g.id||0),0)+1;
+const PLATFORMS = ['Steam','Epic Games','GOG','Xbox / Game Pass','PlayStation','Прочее'];
+
+function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(games)); }catch(e){} }
+
+/* ================= FILTER STATE ================= */
+const filter = { types:new Set(), genres:new Set(), platforms:new Set(), search:'' };
+let sortKey = 'name', sortAsc = true;
+
+function uniqueVals(key){
+  const m = new Map();
+  games.forEach(g => { const v = (g[key]||'').trim(); if(v) m.set(v,(m.get(v)||0)+1); });
+  return [...m.entries()].sort((a,b)=>b[1]-a[1]);
+}
+
+function filteredGames(){
+  return games.filter(g =>
+    (!filter.types.size  || filter.types.has(g.type||'')) &&
+    (!filter.genres.size || filter.genres.has(g.genre||'')) &&
+    (!filter.platforms.size || filter.platforms.has(g.platform||'')) &&
+    (!filter.search || g.name.toLowerCase().includes(filter.search))
+  );
+}
+
+/* ================= RENDER LIBRARY ================= */
+function renderChips(){
+  const mk = (key, el, set) => {
+    el.innerHTML = '';
+    const vals = uniqueVals(key);
+    const emptyCnt = games.filter(g=>!(g[key]||'').trim()).length;
+    if (emptyCnt) vals.push(['', emptyCnt]);
+    vals.forEach(([v,c])=>{
+      const b = document.createElement('button');
+      b.className = 'chip' + (set.has(v)?' on':'');
+      b.innerHTML = (v?esc(v):'<i>Не указано</i>') + '<span class="cnt">' + c + '</span>';
+      b.onclick = ()=>{ set.has(v)?set.delete(v):set.add(v); renderAll(); };
+      el.appendChild(b);
+    });
+  };
+  mk('type', document.getElementById('typeChips'), filter.types);
+  mk('genre', document.getElementById('genreChips'), filter.genres);
+  mk('platform', document.getElementById('platformChips'), filter.platforms);
+}
+
+function renderTable(){
+  const list = filteredGames().slice().sort((a,b)=>{
+    const va=(a[sortKey]||'').toString().toLowerCase(), vb=(b[sortKey]||'').toString().toLowerCase();
+    return (va<vb?-1:va>vb?1:0)*(sortAsc?1:-1);
+  });
+  const types  = uniqueVals('type').map(x=>x[0]);
+  const genres = uniqueVals('genre').map(x=>x[0]);
+  const platforms = [...new Set([...PLATFORMS, ...uniqueVals('platform').map(x=>x[0])])];
+  const tb = document.getElementById('gamesBody');
+  tb.innerHTML = list.map(g=>`
+    <tr>
+      <td class="name-cell">${esc(g.name)}</td>
+      <td>${selHtml(g.id,'platform',g.platform||'',platforms)}</td>
+      <td>${selHtml(g.id,'type',g.type||'',types)}</td>
+      <td>${selHtml(g.id,'genre',g.genre||'',genres)}</td>
+      <td><button class="del" onclick="delGame(${g.id})" title="Удалить">✕</button></td>
+    </tr>`).join('');
+  document.getElementById('countLabel').textContent = `Показано: ${list.length} из ${games.length}`;
+  document.getElementById('toWheelLabel').textContent = `В колесо попадёт игр: ${list.length}`;
+  document.getElementById('toWheelBtn').disabled = list.length < 2;
+  const stats = uniqueVals('genre').slice(0,8).map(([v,c])=>`${v} — ${c}`).join('<br>');
+  document.getElementById('statsBox').innerHTML = `Всего игр: <b>${games.length}</b><br><br>${stats}`;
+}
+
+function selHtml(id,key,val,opts){
+  const o = (!val || opts.includes(val)) ? opts : [val,...opts];
+  return `<select onchange="editGame(${id},'${key}',this.value)">` +
+    `<option value="" ${!val?'selected':''}>—</option>` +
+    o.map(v=>`<option ${v===val?'selected':''}>${esc(v)}</option>`).join('') +
+    `<option value="__new__">+ другой…</option></select>`;
+}
+
+function renderDatalists(){
+  document.getElementById('typeList').innerHTML  = uniqueVals('type').map(([v])=>`<option value="${esc(v)}">`).join('');
+  document.getElementById('genreList').innerHTML = uniqueVals('genre').map(([v])=>`<option value="${esc(v)}">`).join('');
+  const plats = [...new Set([...PLATFORMS, ...uniqueVals('platform').map(x=>x[0])])];
+  document.getElementById('platformList').innerHTML = plats.map(v=>`<option value="${esc(v)}">`).join('');
+}
+
+function renderAll(){ renderChips(); renderTable(); renderDatalists(); }
+
+/* ================= LIBRARY ACTIONS ================= */
+function editGame(id,key,val){
+  if (val==='__new__'){ val = prompt('Новое значение:')||''; }
+  const g = games.find(x=>x.id===id);
+  if (g){ g[key]=(val||'').trim(); save(); }
+  renderAll();
+}
+function delGame(id){
+  const g = games.find(x=>x.id===id);
+  if (g && confirm(`Удалить «${g.name}»?`)){ games = games.filter(x=>x.id!==id); save(); renderAll(); }
+}
+function addGame(){
+  const name = document.getElementById('addName').value.trim();
+  if (!name) return;
+  addGames([{name, platform:document.getElementById('addPlatform').value.trim(), type:document.getElementById('addType').value.trim(), genre:document.getElementById('addGenre').value.trim()}]);
+  document.getElementById('addName').value=''; closeModals();
+}
+function addGames(items){
+  const existing = new Set(games.map(g=>g.name.toLowerCase()));
+  let added = 0;
+  items.forEach(it=>{
+    const n = (it.name||'').trim();
+    if (!n || existing.has(n.toLowerCase())) return;
+    existing.add(n.toLowerCase());
+    games.push({id:nextId++, name:n, platform:(it.platform||'').trim(), type:(it.type||'').trim(), genre:(it.genre||'').trim()});
+    added++;
+  });
+  save(); renderAll();
+  return added;
+}
+function clearFilter(k){ (k==='type'?filter.types:filter.genres).clear(); renderAll(); }
+
+function exportCSV(){
+  const rows = [['Игра','Площадка','Тип','Жанр'], ...games.map(g=>[g.name,g.platform,g.type,g.genre])];
+  const csv = '﻿' + rows.map(r=>r.map(c=>`"${(c||'').toString().replace(/"/g,'""')}"`).join(';')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download = 'games.csv'; a.click();
+}
+
+/* ================= IMPORT: PASTE ================= */
+function importPaste(){
+  const lines = document.getElementById('pasteArea').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  const items = lines.map(line=>{
+    const parts = line.split(/\t|;|\|/).map(s=>s.trim());
+    return {name:parts[0], type:parts[1]||'', genre:parts[2]||'', platform:parts[3]||''};
+  });
+  const n = addGames(items);
+  const st = document.getElementById('pasteStatus');
+  st.className = 'status-msg ok';
+  st.textContent = `Добавлено новых игр: ${n} (дубликаты пропущены)`;
+  document.getElementById('pasteArea').value='';
+}
+
+/* ================= IMPORT: STEAM ================= */
+const PROXIES = [
+  u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+  u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
+];
+async function fetchViaProxy(url){
+  let lastErr;
+  for (const p of PROXIES){
+    try {
+      const r = await fetch(p(url));
+      if (r.ok) { const t = await r.text(); if (t && t.length > 50) return t; }
+      lastErr = new Error('HTTP '+r.status);
+    } catch(e){ lastErr = e; }
+  }
+  throw lastErr || new Error('fetch failed');
+}
+function steamPath(input){
+  input = input.trim().replace(/\/+$/,'');
+  const m = input.match(/steamcommunity\.com\/(id|profiles)\/([^\/\?#]+)/i);
+  if (m) return m[1] + '/' + m[2];
+  if (/^\d{17}$/.test(input)) return 'profiles/' + input;
+  return 'id/' + input;
+}
+async function importSteam(){
+  const st = document.getElementById('steamStatus');
+  const btn = document.getElementById('steamGo');
+  const input = document.getElementById('steamInput').value.trim();
+  if (!input) return;
+  btn.disabled = true;
+  st.className='status-msg'; st.textContent='Загружаю… (может занять до 20 секунд)';
+  try {
+    const path = steamPath(input);
+    let names = [];
+    /* 1) старый XML-эндпоинт */
+    try {
+      const xml = await fetchViaProxy(`https://steamcommunity.com/${path}/games?tab=all&xml=1`);
+      const doc = new DOMParser().parseFromString(xml,'text/xml');
+      names = [...doc.querySelectorAll('game > name')].map(n=>n.textContent.trim());
+      if (!names.length && /profile is private|private/i.test(xml)) throw new Error('private');
+    } catch(e){ /* try next */ }
+    /* 2) JSON в HTML страницы игр */
+    if (!names.length){
+      const html = await fetchViaProxy(`https://steamcommunity.com/${path}/games/?tab=all`);
+      const m = html.match(/data-profile-gameslist="([^"]+)"/);
+      if (m){
+        const jsonStr = m[1].replace(/&quot;/g,'"').replace(/&amp;/g,'&').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+        const data = JSON.parse(jsonStr);
+        names = (data.rgGames||[]).map(g=>g.name).filter(Boolean);
+      }
+      if (!names.length && /This profile is private/i.test(html)) throw new Error('Профиль приватный');
+    }
+    if (!names.length) throw new Error('Не удалось получить список. Проверь, что профиль открытый, или используй «Импорт списком».');
+    const added = addGames(names.map(n=>({name:n, platform:'Steam'})));
+    st.className='status-msg ok';
+    st.textContent = `Найдено игр: ${names.length}. Добавлено новых: ${added} (дубликаты пропущены). Жанр и тип можно проставить в таблице.`;
+  } catch(e){
+    st.className='status-msg err';
+    st.textContent = 'Ошибка: ' + e.message + ' — если не получается, скопируй список игр вручную через «Импорт списком».';
+  }
+  btn.disabled = false;
+}
+
+/* ================= MODALS / TABS ================= */
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModals(){ document.querySelectorAll('.modal-bg').forEach(m=>m.classList.remove('open')); }
+document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>{ if(e.target===m) closeModals(); }));
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById('page-'+t.dataset.page).classList.add('active');
+  if (t.dataset.page==='wheel') drawWheel();
+});
+document.getElementById('searchBox').addEventListener('input', e=>{ filter.search=e.target.value.toLowerCase(); renderTable(); });
+document.querySelectorAll('th[data-sort]').forEach(th=>th.onclick=()=>{
+  const k = th.dataset.sort;
+  if (sortKey===k) sortAsc=!sortAsc; else { sortKey=k; sortAsc=true; }
+  renderTable();
+});
+
+/* ================= WHEEL ================= */
+let wheel = { items:[], out:[], rot:0, spinning:false, winner:null };
+const canvas = document.getElementById('wheelCanvas');
+const ctx = canvas.getContext('2d');
+
+function loadWheel(){
+  const list = filteredGames();
+  if (list.length < 2){ alert('Нужно минимум 2 игры.'); return; }
+  wheel = { items:list.map(g=>g.name), out:[], rot:Math.random()*360, spinning:false, winner:null };
+  document.querySelector('.tab[data-page=wheel]').click();
+  renderWheelSide();
+}
+
+function segColor(i,n){ return `hsl(${Math.round(i*360/n + 137*i)%360} 58% ${i%2? 42:34}%)`; }
+
+function activeItems(){ return wheel.items.filter(n=>!wheel.out.includes(n)); }
+
+function drawWheel(highlightName){
+  const items = activeItems();
+  const W = canvas.width, R = W/2 - 8, cx = W/2, cy = W/2;
+  ctx.clearRect(0,0,W,W);
+  if (!items.length) return;
+  const seg = 360/items.length;
+  items.forEach((name,i)=>{
+    const a0 = (wheel.rot + i*seg) * Math.PI/180;
+    const a1 = (wheel.rot + (i+1)*seg) * Math.PI/180;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,R,a0,a1); ctx.closePath();
+    ctx.fillStyle = name===highlightName ? '#ffce4f' : segColor(wheel.items.indexOf(name), wheel.items.length);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.lineWidth = 1; ctx.stroke();
+    if (seg > 3){
+      ctx.save();
+      ctx.translate(cx,cy); ctx.rotate(a0 + (a1-a0)/2);
+      ctx.textAlign='right'; ctx.textBaseline='middle';
+      ctx.fillStyle = name===highlightName ? '#1a1a1a' : '#fff';
+      const fs = Math.max(9, Math.min(20, seg*1.6));
+      ctx.font = `600 ${fs}px "Segoe UI", sans-serif`;
+      let label = name;
+      const maxW = R - 60;
+      while (ctx.measureText(label).width > maxW && label.length > 3) label = label.slice(0,-2);
+      if (label !== name) label += '…';
+      ctx.fillText(label, R-14, 0);
+      ctx.restore();
+    }
+  });
+  /* hub */
+  ctx.beginPath(); ctx.arc(cx,cy,46,0,Math.PI*2);
+  ctx.fillStyle='#12151d'; ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.stroke();
+  ctx.fillStyle='#8b93a7'; ctx.font='600 13px "Segoe UI"'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(items.length + ' игр', cx, cy);
+}
+
+function pointedIndex(){
+  const items = activeItems();
+  const seg = 360/items.length;
+  const a = ((270 - wheel.rot) % 360 + 360) % 360;
+  return Math.floor(a/seg) % items.length;
+}
+
+function updateCurrentLabel(){
+  const items = activeItems();
+  if (items.length) document.getElementById('currentName').textContent = items[pointedIndex()];
+}
+
+function renderWheelSide(){
+  const el = document.getElementById('wheelList');
+  el.innerHTML = wheel.items.map(n=>{
+    const outIdx = wheel.out.indexOf(n);
+    const cls = 'wl-item' + (outIdx>=0?' out':'') + (n===wheel.winner?' winner':'');
+    const tag = n===wheel.winner ? '🏆' : (outIdx>=0 ? `#${outIdx+1}` : '');
+    return `<div class="${cls}"><span>${esc(n)}</span><span style="color:var(--muted)">${tag}</span></div>`;
+  }).join('');
+  document.getElementById('wheelCount').textContent = `— осталось ${activeItems().length} из ${wheel.items.length}`;
+  drawWheel();
+  updateCurrentLabel();
+}
+
+function spin(){
+  const items = activeItems();
+  if (wheel.spinning || items.length < 2) return;
+  wheel.spinning = true;
+  document.getElementById('spinBtn').disabled = true;
+  document.getElementById('winnerBanner').style.display='none';
+  const dur = Math.max(1, Math.min(30, +document.getElementById('spinDur').value || 6)) * 1000;
+  const start = performance.now();
+  const from = wheel.rot;
+  const target = from + 360*(4 + Math.random()*4) + Math.random()*360;
+  function frame(t){
+    const p = Math.min(1,(t-start)/dur);
+    const ease = 1 - Math.pow(1-p, 3);
+    wheel.rot = from + (target-from)*ease;
+    drawWheel();
+    updateCurrentLabel();
+    if (p < 1){ requestAnimationFrame(frame); }
+    else finishSpin();
+  }
+  requestAnimationFrame(frame);
+}
+
+function finishSpin(){
+  const items = activeItems();
+  const loser = items[pointedIndex()];
+  drawWheel(loser);
+  document.getElementById('currentName').textContent = '💥 ' + loser + ' — выбывает!';
+  setTimeout(()=>{
+    wheel.out.push(loser);
+    const rest = activeItems();
+    if (rest.length === 1){
+      wheel.winner = rest[0];
+      document.getElementById('winnerName').textContent = wheel.winner;
+      document.getElementById('winnerBanner').style.display='block';
+      document.getElementById('currentName').textContent = '🏆 ' + wheel.winner;
+      renderWheelSide();
+      confetti();
+    } else {
+      renderWheelSide();
+      if (document.getElementById('autoSpin').checked){
+        wheel.spinning = false;
+        setTimeout(spin, 500);
+        return;
+      }
+    }
+    wheel.spinning = false;
+    document.getElementById('spinBtn').disabled = false;
+  }, 1400);
+}
+
+function restartWheel(){
+  wheel.out = []; wheel.winner = null; wheel.spinning = false;
+  document.getElementById('winnerBanner').style.display='none';
+  document.getElementById('spinBtn').disabled = false;
+  renderWheelSide();
+}
+
+/* confetti — простая версия */
+function confetti(){
+  const c = document.createElement('canvas');
+  c.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:99';
+  c.width=innerWidth; c.height=innerHeight; document.body.appendChild(c);
+  const x = c.getContext('2d');
+  const ps = Array.from({length:160},()=>({x:Math.random()*c.width, y:-20-Math.random()*c.height*0.5,
+    v:2+Math.random()*4, s:4+Math.random()*6, h:Math.random()*360, r:Math.random()*Math.PI}));
+  let n=0;
+  (function f(){
+    x.clearRect(0,0,c.width,c.height);
+    ps.forEach(p=>{ p.y+=p.v; p.r+=.05;
+      x.save(); x.translate(p.x,p.y); x.rotate(p.r);
+      x.fillStyle=`hsl(${p.h} 90% 60%)`; x.fillRect(-p.s/2,-p.s/2,p.s,p.s); x.restore(); });
+    if (++n<240) requestAnimationFrame(f); else c.remove();
+  })();
+}
+
+/* ================= UTIL ================= */
+function esc(s){ return (s??'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+renderAll();
+</script>
+</body>
+</html>
