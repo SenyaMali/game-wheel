@@ -88,25 +88,11 @@
   .btn.reset{background:#ff2ba6; color:#fff; border-color:var(--border); text-shadow:1px 1px 0 rgba(0,0,0,.45); box-shadow:2px 2px 0 var(--border);}
   .btn.reset:hover{background:#ff5cc0;}
 
-  /* окно Windows 98/2000 */
-  .win98{background:#c3c7cb; border:2px solid; border-color:#ffffff #404040 #404040 #ffffff; box-shadow:1px 1px 0 #000, 6px 6px 0 rgba(0,0,0,.45); padding:3px;}
-  .win98-title{display:flex; justify-content:space-between; align-items:center; background:linear-gradient(90deg,#000080,#1084d0); color:#fff; padding:4px 7px; font-weight:700; font-size:12px; font-family:Tahoma,"MS Sans Serif","Segoe UI",sans-serif;}
-  .win98-btns{display:flex; gap:3px;}
-  .win98-btns b{width:18px; height:16px; background:#c3c7cb; color:#000; border:1px solid; border-color:#fff #404040 #404040 #fff; font-size:10px; line-height:14px; text-align:center; font-family:Tahoma,sans-serif; font-weight:700; cursor:default;}
-  .win98-body{background:#fff; border:2px solid; border-color:#404040 #ffffff #ffffff #404040; margin-top:3px; padding:0 4px; max-height:65vh; overflow:auto;}
-  .win98-body table{color:#111; font-family:Tahoma,Verdana,"Segoe UI",sans-serif; font-size:13px;}
-  .win98-body th{position:sticky; top:0; z-index:1; background:#c3c7cb; color:#000; border:1px solid; border-color:#fff #404040 #404040 #fff; border-bottom-width:2px; font-family:Tahoma,sans-serif; font-size:11px; font-weight:700; text-transform:none; letter-spacing:0; padding:4px 8px;}
-  .win98-body th:active{border-color:#404040 #fff #fff #404040;}
-  .win98-body td{border-bottom:1px solid #e6e6e6; color:#111; padding:4px 8px;}
-  .win98-body tr:hover td{background:#000080; color:#fff;}
-  .win98-body td select{background:#fff; color:#111; border:1px solid #7a7a7a; box-shadow:none; font-family:Tahoma,sans-serif; font-size:12px; padding:2px 4px;}
-  .win98-body td .del{color:#999; font-family:Tahoma,sans-serif;}
-  .win98-body td .del:hover{color:#c00;}
-  .win98-body tr:hover td .del{color:#ffb3b3;}
-  .win98-body::-webkit-scrollbar{width:16px; height:16px;}
-  .win98-body::-webkit-scrollbar-track{background:repeating-conic-gradient(#ffffff 0 25%, #c3c7cb 0 50%) 0 0/2px 2px;}
-  .win98-body::-webkit-scrollbar-thumb{background:#c3c7cb; border:1px solid; border-color:#fff #404040 #404040 #fff;}
-  .win98-body::-webkit-scrollbar-button{background:#c3c7cb; border:1px solid; border-color:#fff #404040 #404040 #fff; height:16px; width:16px;}
+  /* читаемость таблицы */
+  table{font-family:Verdana,Tahoma,"Segoe UI",sans-serif; font-size:13px;}
+  tbody tr:nth-child(even) td{background:rgba(255,255,255,.035);}
+  tbody tr:hover td{background:#3a2f63;}
+  .name-cell{color:#ffe9b8;}
   .sticky-actions{position:sticky; bottom:0; background:linear-gradient(transparent, var(--bg) 30%); padding:16px 0 4px; display:flex; gap:12px; align-items:center;}
 
   /* wheel */
@@ -153,6 +139,12 @@
     <button class="tab active" data-page="lib">Библиотека</button>
     <button class="tab" data-page="wheel">Колесо</button>
   </div>
+  <div class="row" style="gap:6px;">
+    <select id="profileSel" onchange="switchProfile(this.value)" style="width:auto; padding:7px 8px;" title="Чей список"></select>
+    <button class="btn" style="padding:7px 11px;" onclick="newProfile()" title="Создать новый список">＋</button>
+    <button class="btn" style="padding:7px 11px;" onclick="renameProfile()" title="Переименовать список">✎</button>
+    <button class="btn danger" style="padding:7px 11px;" onclick="deleteProfile()" title="Удалить список">✕</button>
+  </div>
   <div class="spacer"></div>
   <button class="btn" onclick="openModal('addModal')">+ Игра</button>
   <button class="btn" onclick="openModal('steamModal')">Импорт из Steam</button>
@@ -186,12 +178,7 @@
         <input type="text" id="searchBox" placeholder="Поиск по названию…">
         <span class="count-label" id="countLabel"></span>
       </div>
-      <div class="win98">
-        <div class="win98-title">
-          <span>🖥 C:\Библиотека\игры.exe</span>
-          <span class="win98-btns"><b>_</b><b>□</b><b>✕</b></span>
-        </div>
-        <div class="win98-body">
+      <div class="card" style="padding:4px 10px;">
         <table>
           <thead><tr>
             <th data-sort="name">Игра ↕</th>
@@ -202,7 +189,6 @@
           </tr></thead>
           <tbody id="gamesBody"></tbody>
         </table>
-        </div>
       </div>
       <div class="sticky-actions">
         <button class="btn primary" id="toWheelBtn" onclick="loadWheel()">🎡 Загрузить в колесо</button>
@@ -308,17 +294,63 @@
 <script>
 /* ================= DATA ================= */
 const SEED = [{"date": "1 июл. 2026 г.", "name": "Nightingale", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "1 июл. 2026 г.", "name": "Human Host", "type": "Сингл", "genre": "Ужасы"}, {"date": "1 июл. 2026 г.", "name": "Hotel Owner Simulator", "type": "Сингл", "genre": "Симулятор"}, {"date": "1 июл. 2026 г.", "name": "Survival: Fountain of Youth", "type": "Сингл", "genre": "Выживание"}, {"date": "1 июл. 2026 г.", "name": "Outlast", "type": "Сингл", "genre": "Ужасы"}, {"date": "1 июл. 2026 г.", "name": "Enshrouded", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "1 июл. 2026 г.", "name": "Scorn", "type": "Сингл", "genre": "Ужасы"}, {"date": "1 июл. 2026 г.", "name": "Outlast 2", "type": "Сингл", "genre": "Ужасы"}, {"date": "1 июл. 2026 г.", "name": "Villagers", "type": "Сингл", "genre": "Стратегия"}, {"date": "28 июн. 2026 г.", "name": "Lethal Company", "type": "Сингл/кооп", "genre": "Ужасы"}, {"date": "27 июн. 2026 г.", "name": "INSOMNIA: The Ark", "type": "Сингл", "genre": "Ужасы"}, {"date": "27 июн. 2026 г.", "name": "Night Club Simulator", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "27 июн. 2026 г.", "name": "Control", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "27 июн. 2026 г.", "name": "Creepy Tale", "type": "Сингл", "genre": "Детектив"}, {"date": "27 июн. 2026 г.", "name": "Remnant: From the Ashes", "type": "Сингл/кооп", "genre": "Ролевая игра"}, {"date": "27 июн. 2026 г.", "name": "Crysis Remastered", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "27 июн. 2026 г.", "name": "Hollow Knight: Silksong", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "27 июн. 2026 г.", "name": "Rain World", "type": "Сингл", "genre": "Выживание"}, {"date": "27 июн. 2026 г.", "name": "Plague Inc: Evolved", "type": "Сингл/кооп", "genre": "Стратегия"}, {"date": "27 июн. 2026 г.", "name": "Black Desert", "type": "Кооп", "genre": "Ролевая игра"}, {"date": "27 июн. 2026 г.", "name": "A Plague Tale: Innocence", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "27 июн. 2026 г.", "name": "Carrion", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "27 июн. 2026 г.", "name": "Bendy and the Dark Revival", "type": "Сингл", "genre": "Ужасы"}, {"date": "27 июн. 2026 г.", "name": "Blue Prince", "type": "Сингл", "genre": "Детектив"}, {"date": "27 июн. 2026 г.", "name": "Remnant II® - Standard Edition", "type": "Сингл/кооп", "genre": "Ролевая игра"}, {"date": "25 июн. 2026 г.", "name": "Drive Beyond Horizons", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "25 июн. 2026 г.", "name": "R.E.P.O.", "type": "Сингл/кооп", "genre": "Ужасы"}, {"date": "23 июн. 2026 г.", "name": "MECCHA CHAMELEON", "type": "Кооп", "genre": "Экшен/Приключения"}, {"date": "20 июн. 2026 г.", "name": "Zenless Zone Zero", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "5 июн. 2026 г.", "name": "Fantasy Map Simulator", "type": "Сингл", "genre": "Симулятор"}, {"date": "2 июн. 2026 г.", "name": "Planetary Life", "type": "Сингл", "genre": "Симулятор"}, {"date": "2 июн. 2026 г.", "name": "Everything is Crab", "type": "Сингл", "genre": "Рогалик"}, {"date": "18 мая. 2026 г.", "name": "Subnautica: Below Zero", "type": "Сингл", "genre": "Выживание"}, {"date": "15 мая. 2026 г.", "name": "We Were Here Forever", "type": "Кооп", "genre": "Головоломка"}, {"date": "30 апр. 2026 г.", "name": "Tiny Bookshop", "type": "Сингл", "genre": "Симулятор"}, {"date": "2 апр. 2026 г.", "name": "God of War", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "31 янв. 2026 г.", "name": "No Time to Relax", "type": "Сингл", "genre": "Казуальная"}, {"date": "31 янв. 2026 г.", "name": "Carcassonne: The Official Board Game", "type": "Сингл", "genre": "Настольная"}, {"date": "31 янв. 2026 г.", "name": "Dorfromantik", "type": "Сингл", "genre": "Головоломка"}, {"date": "14 янв. 2026 г.", "name": "Magic Forge Tycoon", "type": "Сингл", "genre": "Симулятор"}, {"date": "31 окт. 2025 г.", "name": "RV There Yet?", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "1 окт. 2025 г.", "name": "Megabonk", "type": "Сингл", "genre": "Рогалик"}, {"date": "1 окт. 2025 г.", "name": "Town To City", "type": "Сингл", "genre": "Стратегия"}, {"date": "21 сен. 2025 г.", "name": "Voyagers of Nera", "type": "Сингл/кооп", "genre": "Ролевая игра"}, {"date": "21 сен. 2025 г.", "name": "Neva", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "21 сен. 2025 г.", "name": "Aloft", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "21 сен. 2025 г.", "name": "GRIS", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "16 сен. 2025 г.", "name": "No, I'm not a Human", "type": "Сингл", "genre": "Детектив"}, {"date": "13 сен. 2025 г.", "name": "Beholder", "type": "Сингл", "genre": "Детектив"}, {"date": "13 сен. 2025 г.", "name": "Beholder 2", "type": "Сингл", "genre": "Детектив"}, {"date": "5 сен. 2025 г.", "name": "Clair Obscur: Expedition 33", "type": "Сингл", "genre": "Ролевая игра"}, {"date": "5 сен. 2025 г.", "name": "PEAK", "type": "Сингл/кооп", "genre": "Экшен/Приключения"}, {"date": "5 сен. 2025 г.", "name": "Sengoku Dynasty", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "5 сен. 2025 г.", "name": "Hollow Knight", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "29 авг. 2025 г.", "name": "Once Human", "type": "Кооп", "genre": "Выживание"}, {"date": "20 авг. 2025 г.", "name": "Dinkum", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "31 июл. 2025 г.", "name": "Arctic Motel Simulator", "type": "Сингл", "genre": "Симулятор"}, {"date": "31 июл. 2025 г.", "name": "Farming & Supermarket Simulator", "type": "Сингл", "genre": "Симулятор"}, {"date": "11 июл. 2025 г.", "name": "Voidtrain", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "30 июн. 2025 г.", "name": "The Lord of the Rings: Return to Moria™", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "29 мар. 2025 г.", "name": "inZOI", "type": "Сингл", "genre": "Симулятор"}, {"date": "16 мар. 2025 г.", "name": "Spiritfarer: Farewell", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "16 мар. 2025 г.", "name": "Valheim", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "16 мар. 2025 г.", "name": "DEATH STRANDING DIRECTOR'S CUT", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "16 мар. 2025 г.", "name": "Stray", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "16 мар. 2025 г.", "name": "Old Market Simulator", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "16 мар. 2025 г.", "name": "Terra Nil", "type": "Сингл", "genre": "Головоломка"}, {"date": "16 мар. 2025 г.", "name": "Manor Lords", "type": "Сингл", "genre": "Стратегия"}, {"date": "16 мар. 2025 г.", "name": "Palworld", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "16 мар. 2025 г.", "name": "Potion Craft", "type": "Сингл", "genre": "Симулятор"}, {"date": "16 мар. 2025 г.", "name": "Travellers Rest", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "16 мар. 2025 г.", "name": "Gas Station Simulator", "type": "Сингл", "genre": "Симулятор"}, {"date": "16 мар. 2025 г.", "name": "Crusader Kings III Launch", "type": "Сингл", "genre": "Стратегия"}, {"date": "16 мар. 2025 г.", "name": "Conan Exiles Enhanced", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "16 мар. 2025 г.", "name": "The Walking Dead: The Telltale Definitive Series", "type": "Сингл", "genre": "Интерактивное кино"}, {"date": "10 мар. 2025 г.", "name": "Farming Simulator 25", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "4 мар. 2025 г.", "name": "RimWorld", "type": "Сингл", "genre": "Стратегия"}, {"date": "4 мар. 2025 г.", "name": "REKA", "type": "Сингл", "genre": "Ужасы"}, {"date": "4 мар. 2025 г.", "name": "Old World", "type": "Сингл/кооп", "genre": "Стратегия"}, {"date": "1 мар. 2025 г.", "name": "Animal Trainer Simulator", "type": "Сингл", "genre": "Симулятор"}, {"date": "1 мар. 2025 г.", "name": "Rustler", "type": "Сингл", "genre": "Экшен/Приключения"}, {"date": "28 фев. 2025 г.", "name": "My Horse: Bonded Spirits", "type": "Сингл", "genre": "Симулятор"}, {"date": "23 фев. 2025 г.", "name": "Ranch Simulator", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "18 фев. 2025 г.", "name": "Orcs Must Die! Deathtrap", "type": "Сингл/кооп", "genre": "Защита башни"}, {"date": "18 фев. 2025 г.", "name": "Orcs Must Die!", "type": "Сингл", "genre": "Защита башни"}, {"date": "18 фев. 2025 г.", "name": "КЛЕТЬ", "type": "Сингл/кооп", "genre": "Ужасы"}, {"date": "18 фев. 2025 г.", "name": "Diplomacy is Not an Option", "type": "Сингл", "genre": "Стратегия"}, {"date": "14 фев. 2025 г.", "name": "Baldur's Gate 3", "type": "Сингл/кооп", "genre": "Ролевая игра"}, {"date": "3 фев. 2025 г.", "name": "The Elder Scrolls V: Skyrim", "type": "Сингл", "genre": "Ролевая игра"}, {"date": "3 фев. 2025 г.", "name": "Supermarket Together", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "2 фев. 2025 г.", "name": "The Headliners", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "27 янв. 2025 г.", "name": "Streamer Life Simulator 2", "type": "Сингл", "genre": "Симулятор"}, {"date": "27 янв. 2025 г.", "name": "Internet Cafe Simulator 2", "type": "Сингл", "genre": "Симулятор"}, {"date": "13 янв. 2025 г.", "name": "MiSide", "type": "Сингл", "genre": "Ужасы"}, {"date": "20 дек. 2024 г.", "name": "Tiny Glade", "type": "Сингл", "genre": "Казуальная"}, {"date": "20 дек. 2024 г.", "name": "Stellaris", "type": "Сингл/кооп", "genre": "Стратегия"}, {"date": "19 дек. 2024 г.", "name": "Dying Light", "type": "Сингл/кооп", "genre": "Ужасы"}, {"date": "19 дек. 2024 г.", "name": "Dying Light 2", "type": "Сингл/кооп", "genre": "Ужасы"}, {"date": "6 дек. 2024 г.", "name": "The Wild Eight", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "6 дек. 2024 г.", "name": "Frostpunk", "type": "Сингл", "genre": "Стратегия"}, {"date": "4 дек. 2024 г.", "name": "ASKA", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "4 дек. 2024 г.", "name": "Cities: Skylines", "type": "Сингл", "genre": "Стратегия"}, {"date": "4 дек. 2024 г.", "name": "Terraria", "type": "Сингл/кооп", "genre": "Песочница"}, {"date": "4 дек. 2024 г.", "name": "Darkest Dungeon", "type": "Сингл", "genre": "Ролевая игра"}, {"date": "4 дек. 2024 г.", "name": "Northgard: Definitive Edition", "type": "Сингл/кооп", "genre": "Стратегия"}, {"date": "30 ноя. 2024 г.", "name": "Totally Accurate Battle Simulator", "type": "Сингл", "genre": "Стратегия"}, {"date": "26 ноя. 2024 г.", "name": "Timeflow", "type": "Сингл", "genre": "Головоломка"}, {"date": "20 ноя. 2024 г.", "name": "Super Bunny Man", "type": "Кооп", "genre": "Платформер"}, {"date": "19 ноя. 2024 г.", "name": "Pummel Party", "type": "Кооп", "genre": "Казуальная"}, {"date": "18 ноя. 2024 г.", "name": "Nuclear Nightmare", "type": "Сингл/кооп", "genre": "Ужасы"}, {"date": "18 ноя. 2024 г.", "name": "Who's Your Daddy", "type": "Кооп", "genre": "Казуальная"}, {"date": "10 ноя. 2024 г.", "name": "Party Animals", "type": "Кооп", "genre": "Экшен/Приключения"}, {"date": "31 окт. 2024 г.", "name": "Dark Hours", "type": "Сингл/кооп", "genre": "Ужасы"}, {"date": "30 окт. 2024 г.", "name": "Brotato", "type": "Сингл", "genre": "Рогалик"}, {"date": "19 окт. 2024 г.", "name": "Liar's Bar", "type": "Кооп", "genre": "Детектив"}, {"date": "7 окт. 2024 г.", "name": "Only Up: With Friends", "type": "Кооп", "genre": "Платформер"}, {"date": "7 окт. 2024 г.", "name": "Scrap Mechanic", "type": "Сингл/кооп", "genre": "Песочница"}, {"date": "7 окт. 2024 г.", "name": "Fahrenheit", "type": "Сингл", "genre": "Интерактивное кино"}, {"date": "7 окт. 2024 г.", "name": "Detroit: Become Human", "type": "Сингл", "genre": "Интерактивное кино"}, {"date": "7 окт. 2024 г.", "name": "Beyond: Two Souls", "type": "Сингл", "genre": "Интерактивное кино"}, {"date": "7 окт. 2024 г.", "name": "Content Warning", "type": "Кооп", "genre": "Ужасы"}, {"date": "7 окт. 2024 г.", "name": "Heavy Rain", "type": "Сингл", "genre": "Интерактивное кино"}, {"date": "30 сен. 2024 г.", "name": "My Island", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "30 сен. 2024 г.", "name": "Soulmask", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "30 сен. 2024 г.", "name": "Ale & Tale Tavern", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "30 сен. 2024 г.", "name": "Witchtastic", "type": "Сингл/кооп", "genre": "Экшен/Приключения"}, {"date": "30 сен. 2024 г.", "name": "Cannibal Cuisine", "type": "Сингл/кооп", "genre": "Экшен/Приключения"}, {"date": "28 сен. 2024 г.", "name": "Lucky Tower Ultimate", "type": "Сингл", "genre": "Защита башни"}, {"date": "20 сен. 2024 г.", "name": "Project Zomboid", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "20 сен. 2024 г.", "name": "DEVOUR", "type": "Сингл/кооп", "genre": "Ужасы"}, {"date": "12 сен. 2024 г.", "name": "Chained Together", "type": "Кооп", "genre": "Платформер"}, {"date": "19 июл. 2024 г.", "name": "We Were Here Expeditions: The Friendship", "type": "Кооп", "genre": "Головоломка"}, {"date": "13 июн. 2024 г.", "name": "Dark and Darker", "type": "Кооп", "genre": "Экшен/Приключения"}, {"date": "7 июн. 2024 г.", "name": "Fallout Shelter", "type": "Сингл", "genre": "Стратегия"}, {"date": "21 мая. 2024 г.", "name": "Don't Starve Together", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "21 мая. 2024 г.", "name": "Eville", "type": "Кооп", "genre": "Детектив"}, {"date": "30 апр. 2024 г.", "name": "Supermarket Simulator", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "27 апр. 2024 г.", "name": "Deceit 2", "type": "Кооп", "genre": "Ужасы"}, {"date": "11 апр. 2024 г.", "name": "Buckshot Roulette", "type": "Сингл/кооп", "genre": "Ужасы"}, {"date": "5 апр. 2024 г.", "name": "Phasmophobia", "type": "Сингл/кооп", "genre": "Ужасы"}, {"date": "25 мар. 2024 г.", "name": "Palia", "type": "Сингл", "genre": "Симулятор"}, {"date": "13 мар. 2024 г.", "name": "Medieval Dynasty", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "30 янв. 2024 г.", "name": "Sons Of The Forest", "type": "Сингл/кооп", "genre": "Ужасы"}, {"date": "29 янв. 2024 г.", "name": "Deceit", "type": "Кооп", "genre": "Ужасы"}, {"date": "24 янв. 2024 г.", "name": "7 Days to Die", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "6 янв. 2024 г.", "name": "Pacify", "type": "Кооп", "genre": "Ужасы"}, {"date": "6 янв. 2024 г.", "name": "House Flipper", "type": "Сингл", "genre": "Симулятор"}, {"date": "27 ноя. 2023 г.", "name": "Tick Tock: A Tale for Two", "type": "Кооп", "genre": "Головоломка"}, {"date": "26 ноя. 2023 г.", "name": "Left 4 Dead 2", "type": "Сингл/кооп", "genre": "Экшен/Приключения"}, {"date": "25 ноя. 2023 г.", "name": "Subnautica", "type": "Сингл", "genre": "Выживание"}, {"date": "22 ноя. 2023 г.", "name": "We Were Here", "type": "Кооп", "genre": "Головоломка"}, {"date": "22 ноя. 2023 г.", "name": "We Were Here Too", "type": "Кооп", "genre": "Головоломка"}, {"date": "22 ноя. 2023 г.", "name": "We Were Here Together", "type": "Кооп", "genre": "Головоломка"}, {"date": "20 ноя. 2023 г.", "name": "Tavern Master", "type": "Сингл", "genre": "Симулятор"}, {"date": "1 ноя. 2023 г.", "name": "Stardew Valley", "type": "Сингл/кооп", "genre": "Симулятор"}, {"date": "31 окт. 2023 г.", "name": "Goose Goose Duck", "type": "Кооп", "genre": "Детектив"}, {"date": "16 окт. 2023 г.", "name": "Summoners War: Chronicles", "type": "Сингл/кооп", "genre": "Ролевая игра"}, {"date": "4 янв. 2023 г.", "name": "Portal 2", "type": "Сингл/кооп", "genre": "Головоломка"}, {"date": "4 янв. 2023 г.", "name": "ARK: Survival Evolved", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "28 дек. 2021 г.", "name": "Sid Meier's Civilization VI", "type": "Сингл/кооп", "genre": "Стратегия"}, {"date": "12 ноя. 2021 г.", "name": "Raft", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "12 ноя. 2021 г.", "name": "Stranded Deep", "type": "Сингл/кооп", "genre": "Выживание"}, {"date": "2 ноя. 2021 г.", "name": "The Forest", "type": "Сингл/кооп", "genre": "Ужасы"}, {"date": "9 окт. 2021 г.", "name": "The Elder Scrolls Online: Standard Edition", "type": "Сингл/кооп", "genre": "Ролевая игра"}];
-const LS_KEY = 'gameWheel_library_v1';
-let games = [];
-try { games = JSON.parse(localStorage.getItem(LS_KEY) || 'null') || []; } catch(e){ games = []; }
-if (!games.length) { games = SEED.map((g,i)=>({id:i+1, name:g.name, type:g.type||'', genre:g.genre||''})); }
-/* миграция: убираем дату, добавляем площадку */
-games.forEach(g=>{ delete g.date; if (g.platform===undefined) g.platform=''; });
-save();
-let nextId = games.reduce((m,g)=>Math.max(m,g.id||0),0)+1;
+const LS_KEY = 'gameWheel_library_v1';          /* старый формат (один список) */
+const LS_STORE = 'gameWheel_profiles_v1';       /* новый формат (несколько списков) */
 const PLATFORMS = ['Steam','Epic Games','GOG','Xbox / Game Pass','PlayStation','Прочее'];
 
-function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(games)); }catch(e){} }
+function seedGames(){ return SEED.map((g,i)=>({id:i+1, name:g.name, platform:'', type:g.type||'', genre:g.genre||''})); }
+
+let store = null;
+try { store = JSON.parse(localStorage.getItem(LS_STORE) || 'null'); } catch(e){}
+if (!store || !store.profiles || !Object.keys(store.profiles).length){
+  let old = null;
+  try { old = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch(e){}
+  store = { current:'Основной', profiles:{ 'Основной': (old && old.length) ? old : seedGames() } };
+}
+if (!store.profiles[store.current]) store.current = Object.keys(store.profiles)[0];
+let games = store.profiles[store.current];
+/* миграция: убираем дату, добавляем площадку */
+Object.values(store.profiles).forEach(list=>list.forEach(g=>{ delete g.date; if (g.platform===undefined) g.platform=''; }));
+
+function save(){ store.profiles[store.current] = games; try{ localStorage.setItem(LS_STORE, JSON.stringify(store)); }catch(e){} }
+save();
+function nid(){ return games.reduce((m,g)=>Math.max(m,g.id||0),0)+1; }
+
+/* ================= PROFILES (свои списки) ================= */
+function renderProfiles(){
+  const sel = document.getElementById('profileSel');
+  sel.innerHTML = Object.keys(store.profiles).map(n=>
+    `<option ${n===store.current?'selected':''}>${esc(n)}</option>`).join('');
+}
+function switchProfile(name){
+  if (!store.profiles[name]) return;
+  store.current = name; games = store.profiles[name];
+  filter.types.clear(); filter.genres.clear(); filter.platforms.clear();
+  save(); renderProfiles(); renderAll();
+}
+function newProfile(){
+  const n = (prompt('Название нового списка (например, имя):')||'').trim();
+  if (!n) return;
+  if (store.profiles[n]) return alert('Список с таким именем уже есть.');
+  const copy = confirm('OK — начать с копией текущего списка.\nОтмена — начать с пустого.');
+  store.profiles[n] = copy ? JSON.parse(JSON.stringify(games)) : [];
+  switchProfile(n);
+}
+function renameProfile(){
+  const n = (prompt('Новое название списка:', store.current)||'').trim();
+  if (!n || n===store.current) return;
+  if (store.profiles[n]) return alert('Список с таким именем уже есть.');
+  store.profiles[n] = store.profiles[store.current];
+  delete store.profiles[store.current];
+  store.current = n;
+  save(); renderProfiles();
+}
+function deleteProfile(){
+  if (Object.keys(store.profiles).length < 2) return alert('Нельзя удалить единственный список.');
+  if (!confirm(`Удалить список «${store.current}» со всеми играми?`)) return;
+  delete store.profiles[store.current];
+  switchProfile(Object.keys(store.profiles)[0]);
+}
 
 /* ================= FILTER STATE ================= */
 const filter = { types:new Set(), genres:new Set(), platforms:new Set(), search:'' };
@@ -424,7 +456,7 @@ function addGames(items){
     const n = (it.name||'').trim();
     if (!n || existing.has(n.toLowerCase())) return;
     existing.add(n.toLowerCase());
-    games.push({id:nextId++, name:n, platform:(it.platform||'').trim(), type:(it.type||'').trim(), genre:(it.genre||'').trim()});
+    games.push({id:nid(), name:n, platform:(it.platform||'').trim(), type:(it.type||'').trim(), genre:(it.genre||'').trim()});
     added++;
   });
   save(); renderAll();
@@ -691,6 +723,7 @@ function confetti(){
 /* ================= UTIL ================= */
 function esc(s){ return (s??'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+renderProfiles();
 renderAll();
 </script>
 </body>
